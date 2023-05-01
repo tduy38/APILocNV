@@ -1,0 +1,31 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,// Khong can dang nhap window
+    "anonymousAuthentication": true,// cho phep bat an danh
+    "iisExpress": {
+      "applicationUrl": "http://localhost:2834", // base domain
+      "sslPort": 44380 /*https://localhost:44380*/
+    }
+  },
+  "profiles": {
+    "EmployeeManagement.API": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7255;http://localhost:5023",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development" //Test, Production
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
