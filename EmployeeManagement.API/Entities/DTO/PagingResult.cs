@@ -1,18 +1,19 @@
 ﻿namespace EmployeeManagement.API.Entities.DTO
 {
     /// <summary>
-    /// Du liệu trả về cho api phân trang
+    /// Dữ liệu trả về cho api phân trang
     /// </summary>
     public class PagingResult
     {
         /// <summary>
-        /// Danh sach nhan vien 
+        /// Danh sách nhân viên 
         /// </summary>
         public List<Employee> Data { get; set; }
-        /// <summary>
-        /// tổng số bản ghi thỏa mãn điều kiện
-        /// </summary>
 
+        /// <summary>
+        /// Tổng số bản ghi thỏa mãn điều kiện
+        /// </summary>
         public int TotalRecords { get; set; }
+       
     }
 }

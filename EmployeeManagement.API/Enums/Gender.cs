@@ -6,10 +6,12 @@
         /// nam
         /// </summary>
         Male=0,
+
         /// <summary>
         /// nu
         /// </summary>
         Female=1,
+
         /// <summary>
         /// khac
         /// </summary>
