@@ -8,7 +8,7 @@
         /// <summary>
         /// Danh sách nhân viên 
         /// </summary>
-        public List<Employee> Data { get; set; }
+        public List<object> Data { get; set; }
 
         /// <summary>
         /// Tổng số bản ghi thỏa mãn điều kiện

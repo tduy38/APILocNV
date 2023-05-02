@@ -5,12 +5,12 @@ namespace EmployeeManagement.API.Entities
     public class Employee
     {
         /// <summary>
-        ///  Khai báo ID
+        ///  Khóa chính
         /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
-        ///  Khai báo mã nhân viên
+        ///  Mã nhân viên
         /// </summary>
         public string Code { get; set; }
 
@@ -40,12 +40,12 @@ namespace EmployeeManagement.API.Entities
         public string Email { get; set; }
 
         /// <summary>
-        /// Id phòng ban
+        /// Id phòng ban/khóa ngoại
         /// </summary>
         public Guid DepartmentId { get; set; }
 
         /// <summary>
-        /// Id Vị trí 
+        /// Id Vị trí /khóa ngoại
         /// </summary>
         public Guid JobPositionId { get; set; }
 
@@ -62,6 +62,27 @@ namespace EmployeeManagement.API.Entities
         /// <summary>
         /// Ngày gia nhập công ty
         /// </summary>
-        public DateTime JoiningDate { get; set; }      
-    }
+        public DateTime JoiningDate { get; set; }
+
+        /// <summary>
+        /// Số Căn cước công dân
+        /// </summary>
+        public String IdentityNumber { get; set; }
+
+        /// <summary>
+        /// Ngày cấp
+        /// </summary>
+        public DateTime IdentityIssuerDate { get; set; }
+
+        /// <summary>
+        /// Nơi cấp
+        /// </summary>
+        public String IdentityIssuerPlace { get; set; }
+
+        /// <summary>
+        /// Mã số thuế
+        /// </summary>
+        public string TaxCode { get; set; }
+        
+    }  
 }
