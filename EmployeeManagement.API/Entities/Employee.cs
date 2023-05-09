@@ -22,7 +22,7 @@ namespace EmployeeManagement.API.Entities
         /// </summary>
         [Required(ErrorMessage = "Tên nhân viên không được để trống")]
         [MaxLength(100, ErrorMessage = "Tên nhân viên không được để quá 100 lý tự")]
-        public string Fullname { get; set; }
+        public string FullName { get; set; }
 
         /// <summary>
         /// Giới tính: 0 là nam,1 là nữ, 2 là khác
@@ -78,7 +78,7 @@ namespace EmployeeManagement.API.Entities
         /// Số Căn cước công dân
         /// </summary>
         [Required(ErrorMessage = "Căn cước công dân không được để trống")]
-        [MaxLength(25, ErrorMessage = "Căn cước công dân không được để quá 20 lý tự")]
+        [MaxLength(25, ErrorMessage = "Căn cước công dân không được để quá 25 lý tự")]
         public String IdentityNumber { get; set; }
 
         /// <summary>
