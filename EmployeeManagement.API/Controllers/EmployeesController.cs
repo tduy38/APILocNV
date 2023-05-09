@@ -1,8 +1,14 @@
-﻿using EmployeeManagement.API.Entities;
+﻿using Dapper;
+using EmployeeManagement.API.Entities;
 using EmployeeManagement.API.Entities.DTO;
 using EmployeeManagement.API.Enums;
+using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
+using MySqlConnector;
+using System.ComponentModel.DataAnnotations;
+using System.Data;
 
 namespace EmployeeManagement.API.Controllers
 {
@@ -111,28 +117,53 @@ namespace EmployeeManagement.API.Controllers
         /// <param name="employeeId">Id nhân viên muốn lấy</param>
         /// <returns>Chi tiết đối tượng nhân viên muốn lấy</returns>
         [HttpGet("{employeeId}")]
-        public IActionResult GetEmployeeById([FromRoute] Guid employeeId)
+        public IActionResult GetEmployeeById([FromRoute]Guid employeeId)
         {
-            return Ok(new Employee
-            {
-                Id = Guid.NewGuid(),
-                Code = "NV001",
-                Fullname = "Nguyên Văn A",
-                Gender = Gender.Male,
-                DateOfBirth = new DateTime(2003, 1, 2),
-                PhoneNumber = "99999999",
-                Email = "nguyenvana@gmail.com",
-                JobPositionId = Guid.NewGuid(),
-                DepartmentId = Guid.NewGuid(),
-                Salary = 3440,
-                WorkStatus = WorkStatus.TrialJob,
-                IdentityNumber = "88888888",
-                IdentityIssuerDate = new DateTime(2016, 3, 12),
-                IdentityIssuerPlace = "Hà Nội",
-                TaxCode = "5555",
-                JoiningDate = new DateTime(2019, 3, 12),
 
-            });
+            try// ctrl K S
+            {
+                //Chuẩn bị tên store procedure
+                string storedProcedureName = "Proc_employee_GetbyId";
+
+                //Chuẩn bị tham số đầu vào cho store
+                var parameters = new DynamicParameters();
+
+                parameters.Add("p_Id", employeeId);
+
+                //Khởi tạo kết nối tới Database
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+
+                //Thực hiện gọi vào database để chạy stored procedure
+                var employee = mySqlConnection.QueryFirstOrDefault<Employee>(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+                
+                //Xử lý kết quả trả về
+                if (employee == null)
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    return Ok(employee);
+                }
+            }
+            
+            //Try catch để bắt exception
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.DevMsg_Exception,
+                    MoreInfo = "https://errfix.com/1",
+                    TraceId = HttpContext.TraceIdentifier
+
+                });
+            }
+
+
         }
 
         /// <summary>
@@ -153,7 +184,121 @@ namespace EmployeeManagement.API.Controllers
         [HttpPost]
         public IActionResult InsertEmployee([FromBody] Employee newEmployee)
         {
-            return StatusCode(StatusCodes.Status201Created, Guid.NewGuid());
+            try
+            {
+                //validate
+                
+                //lấy được toàn bộ thuộc tính của class employee             
+                var properties = typeof(Employee).GetProperties();
+
+                //Khai báo mảng lỗi
+                var validateFailures = new List<string>();
+
+                foreach ( var property in properties)
+                { 
+                    string propertyName = property.Name;
+
+                    //Kiểm tra xem thuộc tính đó có attribute  required hay không
+                    var requiredAttribute = (RequiredAttribute)property.GetCustomAttributes(typeof(RequiredAttribute), false).FirstOrDefault();
+                    if (requiredAttribute != null)
+                    {
+                        if (String.IsNullOrEmpty(property.GetValue(newEmployee).ToString()))
+                        {
+                            validateFailures.Add(requiredAttribute.ErrorMessage);
+                        }
+                    }
+                    //Kiểm tra xem thuộc tính đó có maxLength required hay không
+                    var maxlengthAttribute = (MaxlengthAttribute)property.GetCustomAttributes(typeof(MaxlengthAttribute), false).FirstOrDefault();
+                    if (maxlengthAttribute != null)
+                    {
+                        if (property.GetValue(newEmployee).ToString().Length < maxlengthAttribute.Length)
+                        {
+                            validateFailures.Add(maxlengthAttribute.ErrorMessage);
+                        }                        
+                    }
+                    //Kiểm tra xem thuộc tính đó có EmailAddress required hay không
+                    var emailAddressAttribute = (EmailAddressAttribute)property.GetCustomAttributes(typeof(EmailAddressAttribute), false).FirstOrDefault();
+                    if (emailAddressAttribute != null)
+                    {
+                        if (String.IsNullOrEmpty(property.GetValue(newEmployee)?.ToString()))
+                        {
+                            validateFailures.Add(emailAddressAttribute.ErrorMessage);
+                        }
+                    }
+                }
+
+                //Kiểm tra mảng lỗi xem có phần tử nào không và return về lỗi
+                if (validateFailures.Count > 0)
+                {
+                    return BadRequest(new ErrorResult
+                    {
+                        ErrorCode = Enums.ErrorCode.InvalidData,
+                        DevMsg = "",
+                        UserMsg = "",
+                        MoreInfo = validateFailures,
+                        TraceId = HttpContext.TraceIdentifier
+                    });
+                }
+
+                //Chuẩn bị tên store procedure
+                string storedProcedureName = "Proc_Employee_Insert";
+
+                //Chuẩn bị tham số đầu vào cho store
+                var parameters = new DynamicParameters();
+                var newId = Guid.NewGuid();
+                parameters.Add("p_Id", newId);
+                parameters.Add("p_Code", newEmployee.Code);
+                parameters.Add("p_FullName", newEmployee.Fullname);
+                parameters.Add("p_Gender", newEmployee.Gender);
+                parameters.Add("p_DateOfBirth", newEmployee.DateOfBirth);
+                parameters.Add("p_PhoneNumber", newEmployee.PhoneNumber);
+                parameters.Add("p_Email", newEmployee.Email);
+                parameters.Add("p_JobPositionID", newEmployee.JobPositionId);
+                parameters.Add("p_DepartmentID", newEmployee.DepartmentId);
+                parameters.Add("p_Salary", newEmployee.Salary);
+                parameters.Add("p_WorkStatus", newEmployee.WorkStatus);
+                parameters.Add("p_IdentityNumber", newEmployee.IdentityNumber);
+                parameters.Add("p_IdentityIssuerDate", newEmployee.IdentityIssuerDate);
+                parameters.Add("p_IdentityIssuerPlace", newEmployee.IdentityIssuerPlace);
+                parameters.Add("p_TaxCode", newEmployee.TaxCode);
+                parameters.Add("p_JoiningDate", newEmployee.JoiningDate);
+
+                //Khởi tạo kết nối tới Database
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+
+                //Thực hiện gọi vào database để chạy stored procedure
+                int numberOfAffectedRows = mySqlConnection.Execute(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                //Xử lý kết quả trả về	
+                if (numberOfAffectedRows == 1)
+                {
+                    return StatusCode(StatusCodes.Status201Created, newId);
+                }
+                
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                     ErrorCode = Enums.ErrorCode.DatabaseFailed,
+                     DevMsg = Resource.DevMsg_DatabaseFailed,
+                     UserMsg = Resource.DevMsg_DatabaseFailed,
+                     MoreInfo = "https://errfix.com/2",
+                     TraceId = HttpContext.TraceIdentifier
+                });                
+            }
+
+            //Try catch để bắt exception
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.DevMsg_Exception,
+                    MoreInfo = "https://errfix.com/1",
+                    TraceId = HttpContext.TraceIdentifier
+
+                });
+            }
         }
 
         /// <summary>
@@ -165,7 +310,124 @@ namespace EmployeeManagement.API.Controllers
         [HttpPut("{employeeId}")]
         public IActionResult UpdateEmployee([FromBody] Employee updateEmployee, [FromRoute] Guid employeeId)
         {
-            return Ok(employeeId);
+            try
+            {
+                //Validate
+                //Lấy toàn bộ thuộc tính của Class Employee
+                var properties = typeof(Employee).GetProperties();
+
+                //Khai báo mảng lỗi
+                var validateFailures = new List<string>();
+
+                //Chạy vòng lặp qua từng thuộc tính ở trên
+                foreach (var property in properties)
+                {
+                    string propertyName = property.Name;
+
+                    //Kiểm tra xem thuộc tính đó có attribute  required hay không
+                    var requiredAttribute = (RequiredAttribute)property.GetCustomAttributes(typeof(RequiredAttribute), false).FirstOrDefault();
+                    if (requiredAttribute != null)
+                    {
+                        if (String.IsNullOrEmpty(property.GetValue(updateEmployee).ToString()))
+                        {
+                            validateFailures.Add(requiredAttribute.ErrorMessage);
+                        }
+                    }
+                    //Kiểm tra xem thuộc tính đó có maxLength required hay không
+                    var maxlengthAttribute = (MaxlengthAttribute)property.GetCustomAttributes(typeof(MaxlengthAttribute), false).FirstOrDefault();
+                    if (maxlengthAttribute != null)
+                    {
+                        if (property.GetValue(updateEmployee).ToString().Length < maxlengthAttribute.Length)
+                        {
+                            validateFailures.Add(maxlengthAttribute.ErrorMessage);
+                        }
+                    }
+                    //Kiểm tra xem thuộc tính đó có EmailAddress required hay không
+                    var emailAddressAttribute = (EmailAddressAttribute)property.GetCustomAttributes(typeof(EmailAddressAttribute), false).FirstOrDefault();
+                    if (emailAddressAttribute != null)
+                    {
+                        if (String.IsNullOrEmpty(property.GetValue(updateEmployee)?.ToString()))
+                        {
+                            validateFailures.Add(emailAddressAttribute.ErrorMessage);
+                        }
+                    }
+                }
+
+                //Kiểm tra mảng lỗi xem có phần tử nào không và return lỗi
+                if (validateFailures.Count > 0)
+                {
+                    return BadRequest(new ErrorResult
+                    {
+                        ErrorCode = Enums.ErrorCode.InvalidData,
+                        DevMsg = "",
+                        UserMsg = "",
+                        MoreInfo = validateFailures,
+                        TraceId = HttpContext.TraceIdentifier
+                    });
+                }
+
+                //validate thành công
+                //Chuẩn bị tên stored
+                string storedProcedureName = "Proc_Employee_Update";
+
+                //Chuẩn bị tham số đầu vào cho store             
+                var parameters = new DynamicParameters();
+                parameters.Add("p_Id", employeeId);
+                parameters.Add("p_Code", updateEmployee.Code);
+                parameters.Add("p_FullName", updateEmployee.Fullname);
+                parameters.Add("p_Gender", updateEmployee.Gender);
+                parameters.Add("p_DateOfBirth", updateEmployee.DateOfBirth);
+                parameters.Add("p_PhoneNumber", updateEmployee.PhoneNumber);
+                parameters.Add("p_Email", updateEmployee.Email);
+                parameters.Add("p_JobPositionID", updateEmployee.JobPositionId);
+                parameters.Add("p_DepartmentID", updateEmployee.DepartmentId);
+                parameters.Add("p_Salary", updateEmployee.Salary);
+                parameters.Add("p_WorkStatus", updateEmployee.WorkStatus);
+                parameters.Add("p_IdentityNumber", updateEmployee.IdentityNumber);
+                parameters.Add("p_IdentityIssuerDate", updateEmployee.IdentityIssuerDate);
+                parameters.Add("p_IdentityIssuerPlace", updateEmployee.IdentityIssuerPlace);
+                parameters.Add("p_TaxCode", updateEmployee.TaxCode);
+                parameters.Add("p_JoiningDate", updateEmployee.JoiningDate);
+
+                //Khởi tạo kết nối tới Database
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+
+                //Thực hiện gọi vào database để chạy stored procedure
+                var employee = mySqlConnection.Execute(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                //Xử lý kết quả trả về	
+                if (employeeId != null)
+                {
+                    return Ok(employee);
+                }
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.DatabaseFailed,
+                    DevMsg = Resource.DevMsg_DatabaseFailed,
+                    UserMsg = Resource.DevMsg_DatabaseFailed,
+                    MoreInfo = "https://errfix.com/2",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
+            //Try catch để bắt exception
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.DevMsg_Exception,
+                    MoreInfo = "https://errfix.com/1",
+                    TraceId = HttpContext.TraceIdentifier
+
+                });
+            }
+        }
+
+        private IActionResult Ok(object employee)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -176,7 +438,54 @@ namespace EmployeeManagement.API.Controllers
         [HttpDelete("{employeeId}")]
         public IActionResult DeleteEmployee([FromRoute] Guid employeeId)
         {
-            return Ok(employeeId);
+            try
+            {
+                //Chuẩn bị tên store procedure
+                string storedProcedureName = "Proc_Employee_Delete";
+
+                //Chuẩn bị tham số đầu vào
+                var parameters = new DynamicParameters();
+                parameters.Add("id", employeeId);
+
+                //Khởi tạo kết nối tới DB
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+
+                //Thực hiện gọi vào DB
+                int numberOfAffectedRows = mySqlConnection.Execute(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                //Xử lý kết quả trả về
+                if (numberOfAffectedRows == 1)
+                {
+                    return Ok(employeeId);
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                    {
+                        ErrorCode = Enums.ErrorCode.DatabaseFailed,
+                        DevMsg = Resource.DevMsg_DatabaseFailed,
+                        UserMsg = Resource.DevMsg_DatabaseFailed,
+                        MoreInfo = "https://errfix.com/2",
+                        TraceId = HttpContext.TraceIdentifier
+
+                    });
+                }
+            }
+
+            //Try catch để bắt exception
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.DevMsg_Exception,
+                    MoreInfo = "https://errfix.com/1",
+                    TraceId = HttpContext.TraceIdentifier
+
+                });
+            }
         }
 
 

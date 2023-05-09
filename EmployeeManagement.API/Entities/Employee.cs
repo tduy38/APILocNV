@@ -1,4 +1,5 @@
 ﻿using EmployeeManagement.API.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace EmployeeManagement.API.Entities
 {
@@ -12,11 +13,15 @@ namespace EmployeeManagement.API.Entities
         /// <summary>
         ///  Mã nhân viên
         /// </summary>
+        [Required(ErrorMessage ="Mã nhân viên không được để trống")]
+        [MaxLength(20, ErrorMessage = "Mã nhân viên không được để quá 20 lý tự")]
         public string Code { get; set; }
 
         /// <summary>
         ///  Tên nhân viên
         /// </summary>
+        [Required(ErrorMessage = "Tên nhân viên không được để trống")]
+        [MaxLength(100, ErrorMessage = "Tên nhân viên không được để quá 100 lý tự")]
         public string Fullname { get; set; }
 
         /// <summary>
@@ -32,11 +37,16 @@ namespace EmployeeManagement.API.Entities
         /// <summary>
         /// Số điện thoại
         /// </summary>
+        [Required]
+        [MaxLength(25)] 
         public string PhoneNumber { get; set; }
 
         /// <summary>
         /// Email
         /// </summary>
+        [Required(ErrorMessage = "Email không được để trống")]
+        [MaxLength(50, ErrorMessage = "Email không được để quá 50 lý tự")]
+        [EmailAddress(ErrorMessage ="Email chưa đúng định dạng")]// định dạng đúng email
         public string Email { get; set; }
 
         /// <summary>
@@ -67,6 +77,8 @@ namespace EmployeeManagement.API.Entities
         /// <summary>
         /// Số Căn cước công dân
         /// </summary>
+        [Required(ErrorMessage = "Căn cước công dân không được để trống")]
+        [MaxLength(25, ErrorMessage = "Căn cước công dân không được để quá 20 lý tự")]
         public String IdentityNumber { get; set; }
 
         /// <summary>
