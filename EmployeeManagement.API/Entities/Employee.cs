@@ -46,7 +46,7 @@ namespace EmployeeManagement.API.Entities
         /// </summary>
         [Required(ErrorMessage = "Email không được để trống")]
         [MaxLength(50, ErrorMessage = "Email không được để quá 50 lý tự")]
-        [EmailAddress(ErrorMessage ="Email chưa đúng định dạng")]// định dạng đúng email
+        [EmailAddress(ErrorMessage = "Email chưa đúng định dạng")]// định dạng đúng email
         public string Email { get; set; }
 
         /// <summary>

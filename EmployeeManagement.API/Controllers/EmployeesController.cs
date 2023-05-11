@@ -90,82 +90,49 @@ namespace EmployeeManagement.API.Controllers
         [HttpGet]
         public IActionResult GetPaging(
             [FromQuery] string? keyword,
-            [FromQuery] Guid jobPositionId,
             [FromQuery] Guid departmentId,
+            [FromQuery] Guid jobPositionId,
             [FromQuery] int limit = 10,
             [FromQuery] int offset = 0)
         {
-            return Ok(new PagingResult
+            try
             {
-                Data = new List<object>
+                string storedProcedureName = "Proc_employee_GetPaging";
+
+                var parameters = new DynamicParameters();
+                parameters.Add("p_Keyword", keyword);
+                parameters.Add("p_DepartmentId", departmentId);
+                parameters.Add("p_JobPositionId", jobPositionId);
+                parameters.Add("p_Offset", offset);
+                parameters.Add("p_Limit", limit);
+
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+
+                var multiResultSets = mySqlConnection.QueryMultiple(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+
+                var employees = multiResultSets.Read<object>().ToList();
+
+                int toltalRecords = multiResultSets.Read<int>().FirstOrDefault();
+
+                return Ok(new PagingResult
                 {
-                    new Employee
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "NV001",
-                        FullName = "Nguyên Văn A",
-                        Gender = Gender.Male,
-                        DateOfBirth = new DateTime(2003,1,2),
-                        PhoneNumber = "99999999",
-                        Email = "nguyenvana@gmail.com",
-                        JobPositionId = Guid.NewGuid(),
-                        DepartmentId = Guid.NewGuid(),
-                        Salary = 3440,
-                        WorkStatus = WorkStatus.TrialJob,
-                        IdentityNumber = "88888888",
-                        IdentityIssuerDate = new DateTime(2016,3,12),
-                        IdentityIssuerPlace = "Hà Nội",
-                        TaxCode = "5555",
-                        JoiningDate = new DateTime(2019,3,12),
+                    Data = employees,
+                    TotalRecords = toltalRecords
+                });
+            }
+            catch (Exception ex)
+            {
 
-                    },
-
-                    new Employee
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "NV002",
-                        FullName = "Phạm Tuấn Duy",
-                        Gender = Gender.Female,
-                        DateOfBirth = new DateTime(2003,3,12),
-                        PhoneNumber = "99999999",
-                        Email = "tuanduy@gmail.com",
-                        JobPositionId = Guid.NewGuid(),
-                        DepartmentId = Guid.NewGuid(),
-                        Salary = 0,
-                        WorkStatus = WorkStatus.TrialJob,
-                        IdentityNumber = "88888888",
-                        IdentityIssuerDate = new DateTime(2017,3,12),
-                        IdentityIssuerPlace = "Thái Bình",
-                        TaxCode = "5555",
-                        JoiningDate = new DateTime(2019,3,12),
-
-                    },
-
-                    new Employee
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "NV003",
-                        FullName = "Phùng Văn Đức",
-                        Gender = Gender.Male,
-                        DateOfBirth =  new DateTime(2002,3,12),
-                        PhoneNumber = "99999999",
-                        Email = "vanduc@gmail.com",
-                        JobPositionId = Guid.NewGuid(),
-                        DepartmentId = Guid.NewGuid(),
-                        Salary = 0,
-                        WorkStatus = WorkStatus.TrialJob,
-                        IdentityNumber = "88888888",
-                        IdentityIssuerDate = new DateTime(2016,3,12),
-                        IdentityIssuerPlace = "Ba vì",
-                        TaxCode = "5555",
-                        JoiningDate = new DateTime(2019,3,12),
-                    }
-
-                },
-                TotalRecords = 3
-
-
-            });
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.UserMsg_Exception,
+                    MoreInfo = "https://google.com",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+            }
         }
 
         /// <summary>
@@ -265,7 +232,7 @@ namespace EmployeeManagement.API.Controllers
                         }
                     }
                     //Kiểm tra xem thuộc tính đó có maxLength required hay không
-                    var maxlengthAttribute = (MaxlengthAttribute)property.GetCustomAttributes(typeof(MaxlengthAttribute), false).FirstOrDefault();
+                    var maxlengthAttribute = (MaxLengthAttribute)property.GetCustomAttributes(typeof(MaxLengthAttribute), false).FirstOrDefault();
                     if (maxlengthAttribute != null)
                     {
                         if (property.GetValue(newEmployee).ToString().Length > maxlengthAttribute.Length)
