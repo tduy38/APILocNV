@@ -2,6 +2,8 @@
 using EmployeeManagement.API.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Dapper;
+using MySqlConnector;
 
 namespace EmployeeManagement.API.Controllers
 {
@@ -24,35 +26,43 @@ namespace EmployeeManagement.API.Controllers
             [FromQuery] int offset = 0
             )
         {
-            return Ok(new PagingResult
+            try
             {
-                
-                Data = new List<Object>
-            {
-                 new JobPosition
-                 {
-                     Id = Guid.NewGuid(),
-                     Code = "VT0001",
-                     Name = "Giám đốc"
-                 },
-                 new JobPosition
-                 {
-                     Id = Guid.NewGuid(),
-                     Code = "VT0002",
-                     Name = "Nhân viên"
-                 },
-                 new JobPosition
-                 {
-                     Id = Guid.NewGuid(),
-                     Code = "VT0003",
-                     Name = "Bảo vệ"
-                 }
+                // Chuẩn bị tên stored procedure 
+                String storedProcedureName = "Proc_jobposition_GetPaging";
+                // Chuẩn bị tham số đầu vào cho stored 
+                var parameters = new DynamicParameters();
+                parameters.Add("p_Keyword", keyword);
+                parameters.Add("p_Limit", limit);
+                parameters.Add("p_Offset", offset);
 
-            },
-                TotalRecords = 3
+                // Khởi tạo kết nối tới Database
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+                // Thực hiện gọi vào Database để chạy stored procedure
+                var multipleResultSets = mySqlConnection.QueryMultiple(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+                var jobPositions = multipleResultSets.Read<object>().ToList();
+                int totalRecords = multipleResultSets.Read<int>().FirstOrDefault();
+
+                return Ok(new PagingResult
+                {
+                    Data = jobPositions,
+                    TotalRecords = totalRecords
+                });
             }
+            catch (Exception ex)
+            {
 
-            );
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.UserMsg_Exception,
+                    MoreInfo = "https://google.com",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+
+            }
 
 
 

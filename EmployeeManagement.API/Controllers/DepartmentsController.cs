@@ -1,7 +1,9 @@
-﻿using EmployeeManagement.API.Entities;
+﻿using Dapper;
+using EmployeeManagement.API.Entities;
 using EmployeeManagement.API.Entities.DTO;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
 
 namespace EmployeeManagement.API.Controllers
 {
@@ -22,31 +24,47 @@ namespace EmployeeManagement.API.Controllers
             [FromQuery] int limit = 10,
             [FromQuery] int offset = 0)
         {
-            return Ok(new PagingResult
+            try
             {
-                Data = new List<object>
+                // Chuẩn bị tên stored procedure 
+                String storedProcedureName = "Proc_department_GetPaging";
+                // Chuẩn bị tham số đầu vào cho stored 
+                var parameters = new DynamicParameters();
+                parameters.Add("p_Keyword", keyword);
+                parameters.Add("p_Limit", limit);
+                parameters.Add("p_Offset", offset);
+
+                // Khởi tạo kết nối tới Database
+                var mySqlConnection = new MySqlConnection(DatabaseContext.ConnectionString);
+                // Thực hiện gọi vào Database để chạy stored procedure
+                var multipleResultSets = mySqlConnection.QueryMultiple(storedProcedureName, parameters, commandType: System.Data.CommandType.StoredProcedure);
+                var departments = multipleResultSets.Read<object>().ToList();
+                int totalRecords = multipleResultSets.Read<int>().FirstOrDefault();
+
+                return Ok(new PagingResult
                 {
-                    new Department
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "PB0001",
-                        Name = "Phòng giám đốc"
-                    },
-                    new Department
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "PB0002",
-                        Name = "Phòng nhân sự"
-                    },
-                    new Department
-                    {
-                        Id = Guid.NewGuid(),
-                        Code = "PB0003",
-                        Name = "Phòng bảo vệ"
-                    }
-                },
-                TotalRecords = 3
-            });
+                    Data = departments,
+                    TotalRecords = totalRecords
+                });
+            }
+            catch (Exception ex)
+            {
+
+                Console.WriteLine(ex.Message);
+                return StatusCode(StatusCodes.Status500InternalServerError, new ErrorResult
+                {
+                    ErrorCode = Enums.ErrorCode.Exception,
+                    DevMsg = Resource.DevMsg_Exception,
+                    UserMsg = Resource.UserMsg_Exception,
+                    MoreInfo = "https://google.com",
+                    TraceId = HttpContext.TraceIdentifier
+                });
+
+            }
         }
     }
 }
+
+
+
+
